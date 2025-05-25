@@ -8,7 +8,7 @@
     <h2>Узнать погоду</h2>
     <form method="post">
         {% csrf_token %}
-        <input type="text" name="city" placeholder="Введите город" required>
+        <input type="text" name="city" placeholder="Введите город" required value="{{ weather.city|default:'' }}">
         <button type="submit">Показать</button>
     </form>
 
