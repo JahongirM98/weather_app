@@ -8,7 +8,14 @@
     <h2>Узнать погоду</h2>
     <form method="post">
         {% csrf_token %}
-        <input type="text" name="city" placeholder="Введите город" required value="{{ weather.city|default:'' }}">
+        <input list="city-options" type="text" name="city" placeholder="Введите город" required
+               value="{{ weather.city|default:'' }}">
+        <datalist id="city-options">
+            {% for item in history %}
+                <option value="{{ item }}">
+            {% endfor %}
+        </datalist>
+
         <button type="submit">Показать</button>
     </form>
 
