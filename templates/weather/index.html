@@ -9,13 +9,12 @@
     <form method="post">
         {% csrf_token %}
         <input list="city-options" type="text" name="city" placeholder="Введите город" required
-               value="{{ weather.city|default:'' }}">
+               value="{{ last_city }}">
         <datalist id="city-options">
             {% for item in history %}
                 <option value="{{ item }}">
             {% endfor %}
         </datalist>
-
         <button type="submit">Показать</button>
     </form>
 
@@ -39,8 +38,10 @@
         </ul>
     {% endif %}
 
-    <form method="get">
+    <form method="get" action="/">
         <button type="submit" name="clear" value="1">Очистить историю</button>
     </form>
+
+
 </body>
 </html>

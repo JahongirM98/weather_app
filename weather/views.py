@@ -1,30 +1,26 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 import requests
 
-
 def index(request):
-    city = None
+
     weather_data = None
     error = None
+
+    # Получаем или создаём историю
+    history = request.session.get('history', [])
+    city = ''
+
 
     # Очистка истории
     if request.GET.get('clear') == '1':
         request.session['history'] = []
         request.session['last_city'] = ''
-
-    # POST: ввод нового города
-    if request.method == "POST":
-        city = request.POST.get('city')
+        return redirect('index')
+    elif request.method == "POST":
+        city = request.POST.get('city', '').strip()
         request.session['last_city'] = city
-
-        history = request.session.get('history', [])
-        if city and city not in history:
-            history.append(city)
-            request.session['history'] = history
-    # GET: берём город из сессии
     else:
-        city = request.session.get('last_city')
-
+        city = request.session.get('last_city', '').strip()
     if city:
         try:
             response = requests.get(
@@ -32,11 +28,11 @@ def index(request):
             )
             geo_data = response.json()
             if geo_data.get("results"):
-                latitude = geo_data["results"][0]["latitude"]
-                longitude = geo_data["results"][0]["longitude"]
+                lat = geo_data["results"][0]["latitude"]
+                lon = geo_data["results"][0]["longitude"]
 
                 forecast = requests.get(
-                    f"https://api.open-meteo.com/v1/forecast?latitude={latitude}&longitude={longitude}&current_weather=true"
+                    f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true"
                 ).json()
 
                 weather_data = {
@@ -45,13 +41,20 @@ def index(request):
                     "windspeed": forecast["current_weather"]["windspeed"],
                     "time": forecast["current_weather"]["time"]
                 }
+
+                if city not in history:
+                    history.append(city)
             else:
                 error = "Город не найден."
         except Exception as e:
             error = f"Ошибка запроса: {str(e)}"
 
+    # Сохраняем историю в любом случае
+    request.session['history'] = history
+
     return render(request, 'weather/index.html', {
         "weather": weather_data,
         "error": error,
-        "history": request.session.get('history', [])
+        "history": history,
+        "last_city": city
     })
