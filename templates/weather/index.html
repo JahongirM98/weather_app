@@ -22,5 +22,14 @@
     {% elif error %}
         <p style="color:red;">{{ error }}</p>
     {% endif %}
+
+    {% if history %}
+        <h4>Ранее введённые города:</h4>
+        <ul>
+            {% for item in history %}
+                <li>{{ item }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
 </body>
 </html>

@@ -1,6 +1,7 @@
 from django.shortcuts import render
 import requests
 
+
 def index(request):
     weather_data = None
     error = None
@@ -8,6 +9,11 @@ def index(request):
     if request.method == "POST":
         city = request.POST.get('city')
         request.session['last_city'] = city  # ← Сохраняем в сессию
+        # Сохраняем город в историю (в сессии)
+        history = request.session.get('history', [])
+        if city not in history:
+            history.append(city)
+            request.session['history'] = history
     else:
         city = request.session.get('last_city')  # ← Берём из сессии
 
@@ -38,5 +44,6 @@ def index(request):
 
     return render(request, 'weather/index.html', {
         "weather": weather_data,
-        "error": error
+        "error": error,
+        "history": request.session.get('history', [])
     })
