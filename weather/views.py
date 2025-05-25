@@ -3,19 +3,27 @@ import requests
 
 
 def index(request):
+    city = None
     weather_data = None
     error = None
 
+    # Очистка истории
+    if request.GET.get('clear') == '1':
+        request.session['history'] = []
+        request.session['last_city'] = ''
+
+    # POST: ввод нового города
     if request.method == "POST":
         city = request.POST.get('city')
-        request.session['last_city'] = city  # ← Сохраняем в сессию
-        # Сохраняем город в историю (в сессии)
+        request.session['last_city'] = city
+
         history = request.session.get('history', [])
-        if city not in history:
+        if city and city not in history:
             history.append(city)
             request.session['history'] = history
+    # GET: берём город из сессии
     else:
-        city = request.session.get('last_city')  # ← Берём из сессии
+        city = request.session.get('last_city')
 
     if city:
         try:
