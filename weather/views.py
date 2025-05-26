@@ -1,15 +1,15 @@
 from django.shortcuts import render, redirect
+from django.http import JsonResponse
 import requests
 
-def index(request):
 
+def index(request):
     weather_data = None
     error = None
 
     # Получаем или создаём историю
     history = request.session.get('history', [])
     city = ''
-
 
     # Очистка истории
     if request.GET.get('clear') == '1':
@@ -58,3 +58,9 @@ def index(request):
         "history": history,
         "last_city": city
     })
+
+
+def history_api(request):
+    history = request.session.get('history', [])
+    return JsonResponse({'history': history}, json_dumps_params={'ensure_ascii': False})
+
