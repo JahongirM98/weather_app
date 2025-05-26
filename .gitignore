@@ -21,3 +21,10 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+# Docker
+*.pid
+*.db
+*.tar
+__docker__/
+*.sock
