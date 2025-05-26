@@ -9,12 +9,8 @@
     <form method="post">
         {% csrf_token %}
         <input list="city-options" type="text" name="city" placeholder="Введите город" required
-               value="{{ last_city }}">
-        <datalist id="city-options">
-            {% for item in history %}
-                <option value="{{ item }}">
-            {% endfor %}
-        </datalist>
+               value="{{ last_city }}" id="city-input">
+        <datalist id="city-options"></datalist>
         <button type="submit">Показать</button>
     </form>
 
@@ -42,6 +38,26 @@
         <button type="submit" name="clear" value="1">Очистить историю</button>
     </form>
 
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const input = document.getElementById('city-input');
+    const datalist = document.getElementById('city-options');
+
+    fetch('/api/history')
+        .then(response => response.json())
+        .then(data => {
+            datalist.innerHTML = '';  // очищаем старое
+            data.history.forEach(city => {
+                const option = document.createElement('option');
+                option.value = city;
+                datalist.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Ошибка при получении истории городов:', error);
+        });
+});
+</script>
 
 </body>
 </html>
