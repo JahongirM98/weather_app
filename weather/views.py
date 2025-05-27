@@ -1,66 +1,60 @@
-from django.shortcuts import render, redirect
+from django.views import View
 from django.http import JsonResponse
-import requests
+from django.shortcuts import render
+from django.db.models import F
+
+from .models import City
+from .open_meteo import OpenMeteo
+
+
+class CitySearchView(View):
+    def get(self, request):
+        city = request.GET.get('city', '').strip()
+        lang = request.GET.get('lang', 'en').strip()
+
+        data = OpenMeteo(language=lang).get_cities_results_by_name(city)
+        return JsonResponse(data, safe=True)
+
+
+class ForecastBaseView(View):
+    forecast_type = None  # 'current', 'historical', 'hourly'
+
+    def get(self, request):
+        city = request.GET.get('city', '').strip()
+        latitude = float(request.GET.get('latitude', '0.0'))
+        longitude = float(request.GET.get('longitude', '0.0'))
+
+        meteo = OpenMeteo()
+        data = None
+
+        if self.forecast_type == 'current':
+            data = meteo.get_current_forecast_by_coordinates(city, latitude, longitude)
+        elif self.forecast_type == 'historical':
+            data = meteo.get_hisotrical_forecast_by_coordinates(latitude, longitude)
+        elif self.forecast_type == 'hourly':
+            data = meteo.get_hourly_forecast_by_coordinates(latitude, longitude)
+            if data:
+                city, created  = City.objects.get_or_create(name=city, latitude=latitude, longitude=longitude)
+                city.searched_count = city.searched_count + 1
+                city.save()
+
+        if not data:
+            return JsonResponse({"error": "Данные не найдены."}, status=404)
+
+        return JsonResponse(data, json_dumps_params={'ensure_ascii': False})
+
+
+class CurrentForecastView(ForecastBaseView):
+    forecast_type = 'current'
+
+
+class HistoricalForecastView(ForecastBaseView):
+    forecast_type = 'historical'
+
+
+class HourlyForecastView(ForecastBaseView):
+    forecast_type = 'hourly'
 
 
 def index(request):
-    weather_data = None
-    error = None
-
-    # Получаем или создаём историю
-    history = request.session.get('history', [])
-    city = ''
-
-    # Очистка истории
-    if request.GET.get('clear') == '1':
-        request.session['history'] = []
-        request.session['last_city'] = ''
-        return redirect('index')
-    elif request.method == "POST":
-        city = request.POST.get('city', '').strip()
-        request.session['last_city'] = city
-    else:
-        city = request.session.get('last_city', '').strip()
-    if city:
-        try:
-            response = requests.get(
-                f"https://geocoding-api.open-meteo.com/v1/search?name={city}&count=1&language=en&format=json"
-            )
-            geo_data = response.json()
-            if geo_data.get("results"):
-                lat = geo_data["results"][0]["latitude"]
-                lon = geo_data["results"][0]["longitude"]
-
-                forecast = requests.get(
-                    f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true"
-                ).json()
-
-                weather_data = {
-                    "city": city,
-                    "temperature": forecast["current_weather"]["temperature"],
-                    "windspeed": forecast["current_weather"]["windspeed"],
-                    "time": forecast["current_weather"]["time"]
-                }
-
-                if city not in history:
-                    history.append(city)
-            else:
-                error = "Город не найден."
-        except Exception as e:
-            error = f"Ошибка запроса: {str(e)}"
-
-    # Сохраняем историю в любом случае
-    request.session['history'] = history
-
-    return render(request, 'weather/index.html', {
-        "weather": weather_data,
-        "error": error,
-        "history": history,
-        "last_city": city
-    })
-
-
-def history_api(request):
-    history = request.session.get('history', [])
-    return JsonResponse({'history': history}, json_dumps_params={'ensure_ascii': False})
-
+    return render(request, 'weather/index.html')
